@@ -10,9 +10,9 @@ HTTPS自签名证书工具，自动生成自签名证书并添加到系统钥匙
 	a. 安装命令行工具
 	```bash
 	# 全局安装
-	npm install trusted-cert -g
+	npm install trusted-cert2 -g
 	# 或者使用yarn
-	yarn global add trusted-cert
+	yarn global add trusted-cert2
 	```
 	
 	b. 一键生成自签名证书并添加到macOS钥匙串
@@ -86,9 +86,9 @@ Commands:
 ### 快速使用
 1. 安装依赖  
 	```bash
-	npm install trusted-cert --save
+	npm install trusted-cert2 --save
 	# 或者使用yarn
-	yarn add trusted-cert
+	yarn add trusted-cert2
 	```
 	
 2. 调用api  
@@ -96,7 +96,7 @@ Commands:
 	```javascript
 	const https = require('https')
 	const fs = require('fs')
-	const { certificateFor } = require('trusted-cert')
+	const { certificateFor } = require('trusted-cert2')
 	const hosts = ['test.m.taobao.com', '192.168.0.1'] // 本地https服务要使用的domain/ip
 	certificateFor(hosts).then((keyAndCert) => {
 		https.createServer(keyAndCert, (req, res) => {
