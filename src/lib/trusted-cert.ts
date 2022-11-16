@@ -1,4 +1,4 @@
-import { readFileSync, rm, writeFileSync } from 'fs-extra';
+import { ensureDirSync, readFileSync, rm, writeFileSync } from 'fs-extra';
 import { pki } from 'node-forge';
 import { join } from 'path';
 import {
@@ -147,6 +147,8 @@ export class TrustedCert {
       ca = await this.ensureCA();
     }
 
+    ensureDirSync(this.dir);
+
     let ssl = this.loadSSL();
     let signHosts = [...hosts];
     if (!overwrite && ssl) {
@@ -174,6 +176,10 @@ export class TrustedCert {
 
       const addHosts = getAdded(currentHosts, signHosts);
       signHosts = [...currentHosts, ...addHosts];
+    }
+
+    if (signHosts.length === 0) {
+      throw new Error(this.l('sign_host_empty'));
     }
 
     let privateKey = ssl?.key;
@@ -310,6 +316,7 @@ export class TrustedCert {
       cert = createCACert(keyPair);
       key = keyPair.privateKey;
 
+      ensureDirSync(this.dir);
       writeCert(this.dir, this.caName, cert);
       writeKey(this.dir, this.caName, key);
     } catch (e: any) {
