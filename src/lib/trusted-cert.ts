@@ -136,15 +136,23 @@ export class TrustedCert {
 
   async sign({
     ca,
+    sslName,
+    expiresIn,
     hosts,
     overwrite = false,
   }: {
     ca?: CertAndKey;
+    sslName?: string;
+    expiresIn?: number;
     hosts: string[];
     overwrite?: boolean;
   }) {
     if (!ca) {
       ca = await this.ensureCA();
+    }
+
+    if (!sslName) {
+      sslName = this.sslName;
     }
 
     ensureDirSync(this.dir);
@@ -169,8 +177,8 @@ export class TrustedCert {
         return {
           key: pki.privateKeyToPem(ssl.key),
           cert: pki.certificateToPem(ssl.cert),
-          keyFilePath: keyPath(this.dir, this.sslName),
-          certFilePath: certPath(this.dir, this.sslName),
+          keyFilePath: keyPath(this.dir, sslName),
+          certFilePath: certPath(this.dir, sslName),
         };
       }
 
@@ -188,7 +196,7 @@ export class TrustedCert {
       publicKey = pki.rsa.setPublicKey(privateKey.n, privateKey.e);
     } else {
       const keypair = await this.generateKeyPair();
-      writeKey(this.dir, this.sslName, keypair.privateKey);
+      writeKey(this.dir, sslName, keypair.privateKey);
 
       privateKey = keypair.privateKey;
       publicKey = keypair.publicKey;
@@ -198,17 +206,18 @@ export class TrustedCert {
       caPrivKey: ca.key,
       caCertAttrs: ca.cert.subject.attributes,
       publicKey,
+      expiresIn,
       hosts: Array.from(signHosts),
     });
 
-    writeCert(this.dir, this.sslName, cert);
+    writeCert(this.dir, sslName, cert);
     this.log(this.l('sign_complete'));
 
     return {
       key: pki.privateKeyToPem(privateKey),
       cert: pki.certificateToPem(cert),
-      keyFilePath: keyPath(this.dir, this.sslName),
-      certFilePath: certPath(this.dir, this.sslName),
+      keyFilePath: keyPath(this.dir, sslName),
+      certFilePath: certPath(this.dir, sslName),
     };
   }
 
