@@ -13,16 +13,13 @@ import {
   isCertValid,
 } from './cert';
 import Debug from 'debug';
-import {
-  addToKeyChain,
-  delTrusted,
-  getKeyChainCertSha1List,
-} from '../platform';
 import applicationConfigPath from './application-config-path';
 import { I18nDict, I18nDictModifier } from '../i18n/interface';
 import { mergeI18n } from '../i18n';
 import { getAdded, isMatched } from './util';
 import { format } from 'util';
+import { CertificateApi } from '../platform/interface';
+import { getCertificateApi } from '../platform';
 
 const debug = Debug('trusted-cert:class');
 
@@ -60,6 +57,7 @@ export class TrustedCert {
   private quiet: boolean;
 
   private i18n: I18nDict;
+  private api: CertificateApi;
 
   constructor({
     dir = applicationConfigPath('trusted-cert'),
@@ -80,6 +78,7 @@ export class TrustedCert {
     this.quiet = quiet;
 
     this.i18n = mergeI18n(i18n);
+    this.api = getCertificateApi();
   }
 
   async install({
@@ -107,12 +106,12 @@ export class TrustedCert {
   async uninstall() {
     const ca = this.loadCA();
     if (ca) {
-      if (this.isCertTrusted(ca.cert)) {
+      if (await this.isCertTrusted(ca.cert)) {
         const cn = getCertCommonName(ca.cert);
         this.log(this.l('uninstall_del_keychain', cn));
 
         try {
-          await delTrusted(cn);
+          await this.api.remove(cn);
           this.log(this.l('uninstall_del_keychain_success'));
         } catch (e: any) {
           console.error(this.l('uninstall_del_keychain_failure', e.message));
@@ -242,7 +241,7 @@ export class TrustedCert {
     this.log(this.l('info_ssl_cert_support_hosts', crtHosts.join(', ')));
   }
 
-  caInfo() {
+  async caInfo() {
     const ca = this.loadCA();
     if (!ca) {
       this.log(this.l('ca_not_created'));
@@ -259,7 +258,7 @@ export class TrustedCert {
 
     this.log('');
 
-    if (this.isCertTrusted(ca.cert)) {
+    if (await this.isCertTrusted(ca.cert)) {
       this.log(this.l('ca_info_trusted'));
     } else {
       this.log(this.l('ca_info_not_trusted'));
@@ -271,7 +270,10 @@ export class TrustedCert {
     if (!this.isCertTrusted(ca.cert)) {
       this.log(this.l('add_trust_process'));
       try {
-        addToKeyChain(certPath(this.dir, this.caName));
+        await this.api.add({
+          name: this.caName,
+          path: certPath(this.dir, this.caName),
+        });
         trusted = true;
         this.log(this.l('add_trust_succeed'));
       } catch (e: any) {
@@ -335,14 +337,14 @@ export class TrustedCert {
     return { cert, key };
   }
 
-  private isCertTrusted(cert: pki.Certificate) {
+  private async isCertTrusted(cert: pki.Certificate) {
     if (!isCertValid(cert)) {
       return false;
     }
 
     const cn = getCertCommonName(cert);
 
-    const list = getKeyChainCertSha1List(cn);
+    const list = await this.api.getHashList(cn);
     const sha1 = getCertSha1(cert);
     debug(`已经添加信任的证书sha1 ${list.join(',')}`);
     debug(`证书文件的sha1 ${sha1}`);

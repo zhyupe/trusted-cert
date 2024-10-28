@@ -22,14 +22,14 @@ export async function info() {
   const inst = new TrustedCert();
 
   inst.info();
-  inst.caInfo();
+  await inst.caInfo();
 }
 
 export async function doTrust() {
   const inst = new TrustedCert();
 
   await inst.doTrust();
-  inst.caInfo();
+  await inst.caInfo();
 }
 
 export const addHosts = deprecate(async (hosts: string[] = []) => {
